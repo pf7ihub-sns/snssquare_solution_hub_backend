@@ -5,3 +5,7 @@ node_modules
 !.env.example
 *.log
 .DS_Store
+test-db.js
+test-db.cjs
+Jenkinsfile
+README.md
