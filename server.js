@@ -30,6 +30,16 @@ app.use(cookieParser());
 
 app.use('/api/auth', authRoutes);
 
+app.get('/api/health', (req, res) => {
+  const dbConnected = mongoose.connection.readyState === 1;
+
+  res.status(dbConnected ? 200 : 503).json({
+    status: dbConnected ? 'ok' : 'error',
+    database: dbConnected ? 'connected' : 'disconnected',
+    uptime: process.uptime()
+  });
+});
+
 const PORT = process.env.PORT || 5001;
 const MONGODB_URI = process.env.MONGODB_URI;
 
