@@ -11,10 +11,12 @@ const generateTokenAndSetCookie = (res, user) => {
   const secret = process.env.JWT_SECRET || 'fallback_secret_for_dev_only';
   const token = jwt.sign(payload, secret, { expiresIn: '1d' });
 
+  const isProd = process.env.NODE_ENV === 'production';
   res.cookie('token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: isProd,
+    // Cross-subdomain SPA (shub → apishub) needs None in production
+    sameSite: isProd ? 'none' : 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 1 day
   });
 
@@ -128,7 +130,12 @@ router.get('/me', authenticateUser, (req, res) => {
 
 // Logout Endpoint
 router.post('/logout', (req, res) => {
-  res.clearCookie('token');
+  const isProd = process.env.NODE_ENV === 'production';
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax'
+  });
   res.status(200).json({ message: 'Logged out successfully' });
 });
 

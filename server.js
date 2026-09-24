@@ -11,20 +11,35 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5174',
   'http://localhost:5173',
+  'https://shub.snssquare.com',
   process.env.FRONTEND_URL
-].filter(Boolean);
+]
+  .filter(Boolean)
+  .map((origin) => origin.replace(/\/$/, ''));
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || !process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+const corsOptions = {
+  origin(origin, callback) {
+    // Non-browser clients (health checks, curl) send no Origin
+    if (!origin) {
+      return callback(null, true);
     }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Do not throw — throwing omits CORS headers and confuses browsers
+    return callback(null, false);
   },
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204
+};
+
+app.use(cors(corsOptions));
+app.options('/{*splat}', cors(corsOptions));
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -51,7 +66,8 @@ if (!MONGODB_URI) {
 mongoose.connect(MONGODB_URI)
   .then(() => {
     console.log('Successfully connected to MongoDB');
-    app.listen(PORT, () => {
+    console.log('CORS allowed origins:', allowedOrigins.join(', '));
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server running on port ${PORT}`);
     });
   })
